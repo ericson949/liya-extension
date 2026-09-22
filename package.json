@@ -1,0 +1,27 @@
+{
+  "name": "liya-extension",
+  "version": "1.0.0",
+  "description": "Liya AI - Production-grade, resilient AI conversation turn capture engine",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/build.js chrome",
+    "build": "node scripts/build.js chrome",
+    "build:chrome": "node scripts/build.js chrome",
+    "build:firefox": "node scripts/build.js firefox",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.0",
+    "@types/node": "^22.10.2",
+    "@types/webextension-polyfill": "^0.12.1",
+    "happy-dom": "^15.11.7",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8"
+  }
+}

@@ -56,9 +56,65 @@ export interface I18nTranslations {
   sidebarSyncNone: string;
   sidebarSyncPartial: (synced: number, total: number) => string;
   sidebarSyncFull: string;
+
+  // OAuth Authentication
+  authTitle: string;
+  authSubtitle: string;
+  btnGoogle: string;
+  btnGithub: string;
+  btnApple: string;
+  loggedInAs: (user: string) => string;
+  btnLogout: string;
+  authConnecting: (provider: string) => string;
+  toastLoginSuccess: (provider: string) => string;
+  toastLogoutSuccess: string;
+  toastLoginError: string;
 }
 
-const translations: Record<SupportedLocale, I18nTranslations> = {
+export type CoreTranslations = Omit<
+  I18nTranslations,
+  | 'authTitle'
+  | 'authSubtitle'
+  | 'btnGoogle'
+  | 'btnGithub'
+  | 'btnApple'
+  | 'loggedInAs'
+  | 'btnLogout'
+  | 'authConnecting'
+  | 'toastLoginSuccess'
+  | 'toastLogoutSuccess'
+  | 'toastLoginError'
+>;
+
+const defaultAuthTranslations = {
+  authTitle: 'Account & Cloud Sync',
+  authSubtitle: 'Sign in to sync your discussions',
+  btnGoogle: 'Google',
+  btnGithub: 'GitHub',
+  btnApple: 'Apple',
+  loggedInAs: (u: string) => `Logged in as ${u}`,
+  btnLogout: 'Sign Out',
+  authConnecting: (p: string) => `Connecting to ${p}...`,
+  toastLoginSuccess: (p: string) => `Successfully signed in via ${p}!`,
+  toastLogoutSuccess: 'Logged out successfully.',
+  toastLoginError: 'Sign-in failed or cancelled.',
+};
+
+const frAuthTranslations = {
+  authTitle: 'Compte & Synchronisation',
+  authSubtitle: 'Connectez-vous pour synchroniser vos discussions',
+  btnGoogle: 'Google',
+  btnGithub: 'GitHub',
+  btnApple: 'Apple',
+  loggedInAs: (u: string) => `Connecté : ${u}`,
+  btnLogout: 'Se déconnecter',
+  authConnecting: (p: string) => `Connexion à ${p}...`,
+  toastLoginSuccess: (p: string) => `Connecté avec succès via ${p} !`,
+  toastLogoutSuccess: 'Déconnecté avec succès.',
+  toastLoginError: 'Connexion échouée ou annulée.',
+};
+
+const baseTranslations: Record<SupportedLocale, CoreTranslations> = {
   en: {
     savedInLiya: 'Saved in Liya AI',
     savedInSynapse: 'Saved in Liya AI',
@@ -585,7 +641,7 @@ export function detectBrowserLocale(): SupportedLocale {
   // Extract base language code (e.g. 'fr-FR' -> 'fr', 'zh-CN' -> 'zh')
   const baseCode = rawLocale.toLowerCase().split('-')[0] as SupportedLocale;
 
-  if (baseCode in translations) {
+  if (baseCode in baseTranslations) {
     return baseCode;
   }
 
@@ -597,5 +653,10 @@ export function detectBrowserLocale(): SupportedLocale {
  */
 export function getI18n(locale?: SupportedLocale): I18nTranslations {
   const selectedLocale = locale ?? detectBrowserLocale();
-  return translations[selectedLocale] ?? translations.en;
+  const base = baseTranslations[selectedLocale] ?? baseTranslations.en;
+  const authStrings = selectedLocale === 'fr' ? frAuthTranslations : defaultAuthTranslations;
+  return {
+    ...base,
+    ...authStrings,
+  };
 }

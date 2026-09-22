@@ -230,12 +230,33 @@ export class MockRuntime {
   }
 }
 
+export class MockIdentity {
+  public launchWebAuthFlow = vi.fn(
+    (details: { url: string; interactive?: boolean }, callback?: (responseUrl?: string) => void) => {
+      const responseUrl = 'https://test-extension-id.chromiumapp.org/oauth2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsIm5hbWUiOiJUZXN0IFVzZXIifQ.mock_sig';
+      if (callback) {
+        callback(responseUrl);
+        return;
+      }
+      return Promise.resolve(responseUrl);
+    }
+  );
+
+  public getRedirectURL = vi.fn((path?: string) => `https://test-extension-id.chromiumapp.org/${path || ''}`);
+
+  public _reset(): void {
+    this.launchWebAuthFlow.mockClear();
+    this.getRedirectURL.mockClear();
+  }
+}
+
 export interface MockChromeEnvironment {
   storage: {
     local: MockStorageArea;
   };
   alarms: MockAlarms;
   runtime: MockRuntime;
+  identity: MockIdentity;
   resetAll: () => void;
 }
 
@@ -243,15 +264,18 @@ export function createMockChrome(): MockChromeEnvironment {
   const localStorage = new MockStorageArea();
   const alarms = new MockAlarms();
   const runtime = new MockRuntime();
+  const identity = new MockIdentity();
 
   return {
     storage: { local: localStorage },
     alarms,
     runtime,
+    identity,
     resetAll: () => {
       localStorage._reset();
       alarms._reset();
       runtime._reset();
+      identity._reset();
     },
   };
 }

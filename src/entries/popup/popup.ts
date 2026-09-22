@@ -1,8 +1,11 @@
 import { browserAPI } from '@shared/utils/browser-api';
 import { getI18n } from '@shared/utils/i18n';
+import { ChromeAuthAdapter } from '@features/auth/infrastructure/chrome-auth.adapter';
+import { OAuthProvider } from '@features/auth/ports/auth.port';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const i18n = getI18n();
+  const authAdapter = new ChromeAuthAdapter();
 
   const engineStatus = document.getElementById('engine-status') as HTMLSpanElement;
   const statTurns = document.getElementById('stat-turns') as HTMLDivElement;
@@ -21,6 +24,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   const siteHintDot = document.getElementById('site-hint-dot') as HTMLSpanElement;
   const siteHintText = document.getElementById('site-hint-text') as HTMLSpanElement;
 
+  // Auth UI elements
+  const authLoggedOut = document.getElementById('auth-logged-out') as HTMLDivElement;
+  const authLoggedIn = document.getElementById('auth-logged-in') as HTMLDivElement;
+  const authTitle = document.getElementById('auth-title') as HTMLSpanElement;
+  const authSubtitle = document.getElementById('auth-subtitle') as HTMLSpanElement;
+  const btnLoginGoogle = document.getElementById('btn-login-google') as HTMLButtonElement;
+  const btnLoginGithub = document.getElementById('btn-login-github') as HTMLButtonElement;
+  const btnLoginApple = document.getElementById('btn-login-apple') as HTMLButtonElement;
+  const btnTextGoogle = document.getElementById('btn-text-google') as HTMLSpanElement;
+  const btnTextGithub = document.getElementById('btn-text-github') as HTMLSpanElement;
+  const btnTextApple = document.getElementById('btn-text-apple') as HTMLSpanElement;
+  const userAvatar = document.getElementById('user-avatar') as HTMLDivElement;
+  const userName = document.getElementById('user-name') as HTMLSpanElement;
+  const userEmail = document.getElementById('user-email') as HTMLSpanElement;
+  const userProviderBadge = document.getElementById('user-provider-badge') as HTMLSpanElement;
+  const btnLogout = document.getElementById('btn-logout') as HTMLButtonElement;
+
   // Apply localized labels dynamically based on detected browser language
   if (statLabelTurns) statLabelTurns.textContent = i18n.statTurns;
   if (statLabelSessions) statLabelSessions.textContent = i18n.statSessions;
@@ -29,6 +49,87 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (labelPauseSync) labelPauseSync.textContent = i18n.labelPauseSync;
   if (btnSave) btnSave.textContent = i18n.btnSave;
   if (btnSyncNow) btnSyncNow.textContent = i18n.btnSyncNow;
+
+  if (authTitle) authTitle.textContent = i18n.authTitle;
+  if (authSubtitle) authSubtitle.textContent = i18n.authSubtitle;
+  if (btnTextGoogle) btnTextGoogle.textContent = i18n.btnGoogle;
+  if (btnTextGithub) btnTextGithub.textContent = i18n.btnGithub;
+  if (btnTextApple) btnTextApple.textContent = i18n.btnApple;
+  if (btnLogout) btnLogout.title = i18n.btnLogout;
+
+  async function refreshAuthState() {
+    try {
+      const user = await authAdapter.getStoredUser();
+      const token = await authAdapter.getStoredToken();
+
+      if (user || token) {
+        if (authLoggedOut) authLoggedOut.style.display = 'none';
+        if (authLoggedIn) authLoggedIn.style.display = 'block';
+
+        const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+        if (userName) userName.textContent = displayName;
+        if (userEmail) userEmail.textContent = user?.email || (token ? 'JWT Session Active' : '');
+        if (userProviderBadge) {
+          userProviderBadge.textContent = user?.provider ? user.provider.toUpperCase() : 'TOKEN';
+        }
+
+        if (userAvatar) {
+          if (user?.picture) {
+            userAvatar.textContent = '';
+            userAvatar.style.backgroundImage = `url(${user.picture})`;
+          } else {
+            userAvatar.style.backgroundImage = '';
+            userAvatar.textContent = displayName.charAt(0).toUpperCase();
+          }
+        }
+
+        if (token && authInput && !authInput.value) {
+          authInput.value = token;
+        }
+      } else {
+        if (authLoggedOut) authLoggedOut.style.display = 'block';
+        if (authLoggedIn) authLoggedIn.style.display = 'none';
+      }
+    } catch {
+      // Defensive
+    }
+  }
+
+  async function handleOAuthLogin(provider: OAuthProvider, btn: HTMLButtonElement, btnText: HTMLSpanElement | null, defaultText: string) {
+    btn.disabled = true;
+    if (btnText) btnText.textContent = '...';
+    try {
+      const endpoint = endpointInput.value.trim() || undefined;
+      const token = await authAdapter.loginWithProvider(provider, endpoint);
+      authInput.value = token;
+      await refreshAuthState();
+      showToast(i18n.toastLoginSuccess(provider.toUpperCase()));
+    } catch (err: any) {
+      const msg = err?.message || i18n.toastLoginError;
+      showToast(msg, true);
+    } finally {
+      btn.disabled = false;
+      if (btnText) btnText.textContent = defaultText;
+    }
+  }
+
+  if (btnLoginGoogle) {
+    btnLoginGoogle.addEventListener('click', () => handleOAuthLogin('google', btnLoginGoogle, btnTextGoogle, i18n.btnGoogle));
+  }
+  if (btnLoginGithub) {
+    btnLoginGithub.addEventListener('click', () => handleOAuthLogin('github', btnLoginGithub, btnTextGithub, i18n.btnGithub));
+  }
+  if (btnLoginApple) {
+    btnLoginApple.addEventListener('click', () => handleOAuthLogin('apple', btnLoginApple, btnTextApple, i18n.btnApple));
+  }
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async () => {
+      await authAdapter.logout();
+      authInput.value = '';
+      await refreshAuthState();
+      showToast(i18n.toastLogoutSuccess);
+    });
+  }
 
   function showToast(message: string, isError = false) {
     toast.textContent = message;
@@ -79,10 +180,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       currentPlatform = statusResponse.currentTabPlatform || null;
 
       renderStatus(Boolean(settings.isSyncPaused), currentIsSupported, currentPlatform);
+      await refreshAuthState();
     }
   } catch (err) {
     console.error('Failed to load Liya AI status:', err);
   }
+
+  // Initial auth state check even if GET_STATUS had partial data
+  await refreshAuthState();
 
   // Save Settings
   btnSave.addEventListener('click', async () => {
@@ -98,6 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       renderStatus(isSyncPaused, currentIsSupported, currentPlatform);
+      await refreshAuthState();
 
       showToast(i18n.toastSaveSuccess);
     } catch (err) {

@@ -1,0 +1,52 @@
+# Dependency directories
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Production extension build bundles & archives
+dist/
+dist-chrome/
+dist-firefox/
+*.zip
+*.crx
+*.xpi
+
+# Environment & Local Secrets
+.env
+.env.*
+!.env.example
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE & Editor settings
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing & Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Cache & Temporary files
+*.tsbuildinfo
+.eslintcache
+.cache/
+tmp/
+temp/

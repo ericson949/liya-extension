@@ -40,12 +40,18 @@ interface BrowserRuntime {
   id?: string;
 }
 
+export interface BrowserIdentity {
+  launchWebAuthFlow(details: { url: string; interactive?: boolean }): Promise<string>;
+  getRedirectURL(path?: string): string;
+}
+
 export interface BrowserAPI {
   storage: {
     local: BrowserStorageArea;
   };
   alarms: BrowserAlarms;
   runtime: BrowserRuntime;
+  identity?: BrowserIdentity;
 }
 
 function resolveBrowserAPI(): BrowserAPI {
@@ -144,6 +150,23 @@ function resolveBrowserAPI(): BrowserAPI {
         getURL: (path: string) => rawChrome.runtime.getURL(path),
         id: rawChrome.runtime?.id,
       },
+      identity: rawChrome.identity
+        ? {
+            launchWebAuthFlow: (details: { url: string; interactive?: boolean }): Promise<string> => {
+              return new Promise((resolve, reject) => {
+                rawChrome.identity.launchWebAuthFlow(details, (responseUrl?: string) => {
+                  if (rawChrome.runtime?.lastError || !responseUrl) {
+                    return reject(rawChrome.runtime?.lastError || new Error('Authentification annulée'));
+                  }
+                  resolve(responseUrl);
+                });
+              });
+            },
+            getRedirectURL: (path?: string): string => {
+              return rawChrome.identity.getRedirectURL(path);
+            },
+          }
+        : undefined,
     };
   }
 

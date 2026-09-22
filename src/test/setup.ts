@@ -7,12 +7,14 @@ const mockChrome = createMockChrome();
   storage: mockChrome.storage,
   alarms: mockChrome.alarms,
   runtime: mockChrome.runtime,
+  identity: mockChrome.identity,
 };
 
 (globalThis as any).browser = {
   storage: mockChrome.storage,
   alarms: mockChrome.alarms,
   runtime: mockChrome.runtime,
+  identity: mockChrome.identity,
 };
 
 export { mockChrome };
